@@ -1,59 +1,21 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "workbus",
+  "name": "rk-claude-chat-bridge",
   "main": "src/worker.ts",
   "compatibility_date": "2026-11-17",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "durable_objects": {
     "bindings": [
-      {
-        "name": "LEDGER",
-        "class_name": "Ledger"
-      },
-      {
-        "name": "RELAY",
-        "class_name": "Relay"
-      },
-      {
-        "name": "MAILBOX",
-        "class_name": "Mailbox"
-      },
-      {
-        "name": "INBOX",
-        "class_name": "Inbox"
-      }
+      {"name": "LEDGER", "class_name": "Ledger"},
+      {"name": "RELAY", "class_name": "Relay"},
+      {"name": "MAILBOX", "class_name": "Mailbox"},
+      {"name": "INBOX", "class_name": "Inbox"}
     ]
   },
   "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": [
-        "Ledger",
-        "Relay",
-        "Mailbox"
-      ]
-    },
-    {
-      "tag": "v2",
-      "new_sqlite_classes": [
-        "Inbox"
-      ]
-    }
+    {"tag": "v1", "new_sqlite_classes": ["Ledger", "Relay", "Mailbox"]},
+    {"tag": "v2", "new_sqlite_classes": ["Inbox"]}
   ],
-  "r2_buckets": [
-    {
-      "binding": "FILES",
-      "bucket_name": "workbus-files"
-    }
-  ],
-  "worker_loaders": [
-    {
-      "binding": "LOADER"
-    }
-  ],
-  "observability": {
-    "enabled": true
-  }
+  "worker_loaders": [{"binding": "LOADER"}],
+  "observability": {"enabled": true}
 }
