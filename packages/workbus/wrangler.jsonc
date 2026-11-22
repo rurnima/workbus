@@ -16,6 +16,5 @@
     {"tag": "v1", "new_sqlite_classes": ["Ledger", "Relay", "Mailbox"]},
     {"tag": "v2", "new_sqlite_classes": ["Inbox"]}
   ],
-  "worker_loaders": [{"binding": "LOADER"}],
   "observability": {"enabled": true}
 }
