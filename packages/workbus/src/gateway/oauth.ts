@@ -101,7 +101,7 @@ export async function handleOAuth(request: Request, env: OAuthEnv): Promise<Resp
       grant_types_supported: ['authorization_code'], code_challenge_methods_supported: ['S256'],
       token_endpoint_auth_methods_supported: ['none'], client_id_metadata_document_supported: false })
   }
-  if (url.pathname === '/.well-known/oauth-protected-resource' || url.pathname.endsWith('/.well-known/oauth-protected-resource')) {
+  if (url.pathname === '/.well-known/oauth-protected-resource' || url.pathname.startsWith('/.well-known/oauth-protected-resource/')) {
     return json({ resource: origin + '/b/bridge-check', authorization_servers: [issuer],
       bearer_methods_supported: ['header'], scopes_supported: ['board:read', 'board:write'] })
   }
