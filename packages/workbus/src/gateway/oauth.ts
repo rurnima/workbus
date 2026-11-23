@@ -95,7 +95,7 @@ export async function handleOAuth(request: Request, env: OAuthEnv): Promise<Resp
   const origin = (env.BOARD_ORIGIN ?? url.origin).replace(/\/+$/, '')
   const issuer = origin + '/oauth'
   const resource = url.origin + url.pathname.replace(/\/(?:\.well-known\/.*|oauth\/.*)$/, '')
-  if (url.pathname === '/.well-known/oauth-authorization-server' || url.pathname === '/oauth/.well-known/oauth-authorization-server') {
+  if (url.pathname === '/.well-known/oauth-authorization-server' || url.pathname === '/.well-known/oauth-authorization-server/oauth' || url.pathname === '/oauth/.well-known/oauth-authorization-server') {
     return json({ issuer, authorization_endpoint: origin + '/oauth/authorize', token_endpoint: origin + '/oauth/token',
       registration_endpoint: origin + '/oauth/register', response_types_supported: ['code'],
       grant_types_supported: ['authorization_code'], code_challenge_methods_supported: ['S256'],
@@ -129,8 +129,8 @@ export async function handleOAuth(request: Request, env: OAuthEnv): Promise<Resp
     if (!client || !client.redirect_uris.includes(redirect) || !allowedRedirect(redirect) ||
       p.get('response_type') !== 'code' || p.get('code_challenge_method') !== 'S256' ||
       !/^[A-Za-z0-9_-]{43,128}$/.test(challenge) || !state || state.length > 1024 ||
-      p.get('audience') !== origin + '/b/bridge-check') return json({ error: 'invalid_request' }, 400)
-    const hidden = Object.entries({ client_id: clientId, redirect_uri: redirect, state, challenge, audience: p.get('audience')! })
+      (p.get('resource') ?? p.get('audience')) !== origin + '/b/bridge-check') return json({ error: 'invalid_request' }, 400)
+    const hidden = Object.entries({ client_id: clientId, redirect_uri: redirect, state, challenge, audience: p.get('resource') ?? p.get('audience')! })
       .map(([k,v]) => `<input type="hidden" name="${k}" value="${encodeURIComponent(v)}">`).join('')
     return html(`<p>Sign in to authorize this MCP client to access your Workbus board.</p><form method="post" action="/oauth/authorize">${hidden}<label>Owner password<br><input name="password" type="password" required autocomplete="current-password" style="width:100%;padding:12px;margin:8px 0"></label><button style="padding:12px 20px">Authorize</button></form>`)
   }
