@@ -7,6 +7,7 @@ import type { Caller, Principal } from '../ledger/core.ts'
 import { GATEWAY, match, ROUTES, type Route } from '../protocol/routes.ts'
 import '../protocol/index.ts'
 import { authenticate, publicJwks, type IssuerKey } from './auth.ts'
+import { handleOAuth } from './oauth.ts'
 import { parseNarrow, parseProfile } from './headers.ts'
 import { courierId, inboxName, type SyncProvider } from '../sync/provider.ts'
 
@@ -25,6 +26,8 @@ export type GatewayEnv = {
   INBOX?: Namespace
   MAILBOX?: Namespace
   BOARD_ISSUER_KEY: string
+  OAUTH: { getByName(name: string): { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> } }
+  OAUTH_OWNER_PASSWORD: string
   BOARD_ORIGIN?: string
   ACCESS_TEAM?: string
   ACCESS_AUD?: string
@@ -161,6 +164,8 @@ export function createGateway(configure: Configure = () => ({})) {
   }
   return async function gateway(request: Request, env: GatewayEnv): Promise<Response> {
     const url = new URL(request.url)
+    const oauth = await handleOAuth(request, env as GatewayEnv & import('./oauth.ts').OAuthEnv)
+    if (oauth) return oauth
     const origin = (env.BOARD_ORIGIN ?? url.origin).replace(/\/+$/, '')
     if (url.pathname === '/issuer/.well-known/jwks.json') return json(publicJwks(JSON.parse(env.BOARD_ISSUER_KEY) as IssuerKey))
     const mounted = /^\/b\/([^/]+)(\/.*)?$/.exec(url.pathname)
