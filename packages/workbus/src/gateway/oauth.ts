@@ -11,6 +11,12 @@ const sha256 = (value: string) => createHash('sha256').update(value).digest('bas
 const json = (value: unknown, status = 200, headers: HeadersInit = {}) =>
   Response.json(value, { status, headers: { 'cache-control': 'no-store', ...headers } })
 
+// Hidden form values are HTML attributes, not URL components. Escape them for HTML
+// so the browser submits the original URI/state exactly once via form encoding.
+const escapeHtml = (value: string) => value.replace(/[&<>\"']/g, (char) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;',
+})[char]!)
+
 /** Durable, single-purpose storage for OAuth clients and one-time authorization codes. */
 export class OAuthStore extends DurableObject {
   constructor(ctx: DurableObjectState, env: unknown) {
@@ -131,7 +137,7 @@ export async function handleOAuth(request: Request, env: OAuthEnv): Promise<Resp
       !/^[A-Za-z0-9_-]{43,128}$/.test(challenge) || !state || state.length > 1024 ||
       (p.get('resource') ?? p.get('audience')) !== origin + '/b/bridge-check') return json({ error: 'invalid_request' }, 400)
     const hidden = Object.entries({ client_id: clientId, redirect_uri: redirect, state, challenge, audience: p.get('resource') ?? p.get('audience')! })
-      .map(([k,v]) => `<input type="hidden" name="${k}" value="${encodeURIComponent(v)}">`).join('')
+      .map(([k,v]) => `<input type="hidden" name="${escapeHtml(k)}" value="${escapeHtml(v)}">`).join('')
     return html(`<p>Sign in to authorize this MCP client to access your Workbus board.</p><form method="post" action="/oauth/authorize">${hidden}<label>Owner password<br><input name="password" type="password" required autocomplete="current-password" style="width:100%;padding:12px;margin:8px 0"></label><button style="padding:12px 20px">Authorize</button></form>`)
   }
   if (url.pathname === '/oauth/authorize' && request.method === 'POST') {
