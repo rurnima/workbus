@@ -61,7 +61,7 @@ async function authorize(clientId: string) {
   return callback.searchParams.get('code')!
 }
 
-async function exchange(code: string, clientId: string) {
+async function exchange(code: string, clientId: string, codeVerifier = verifier) {
   return SELF.fetch(origin + '/oauth/token', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -70,7 +70,7 @@ async function exchange(code: string, clientId: string) {
       code,
       client_id: clientId,
       redirect_uri: redirectUri,
-      code_verifier: verifier,
+      code_verifier: codeVerifier,
     }),
   })
 }
@@ -104,6 +104,23 @@ describe('Workbus OAuth', () => {
     expect(await response.json()).toMatchObject({ error: 'invalid_client_metadata' })
   })
 
+  it('rejects non-HTTP schemes even for loopback redirect hosts', async () => {
+    const response = await SELF.fetch(origin + '/oauth/register', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ redirect_uris: ['ftp://localhost/callback'] }),
+    })
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ error: 'invalid_client_metadata' })
+
+    const loopback = await SELF.fetch(origin + '/oauth/register', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ redirect_uris: ['http://localhost:4321/callback'] }),
+    })
+    expect(loopback.status).toBe(201)
+  })
+
   it('preserves redirect URI query parameters and exchanges a code only once', async () => {
     const client = await registerClient()
     expect(client.redirect_uris).toEqual([redirectUri])
@@ -121,6 +138,14 @@ describe('Workbus OAuth', () => {
     const replay = await exchange(code, client.client_id)
     expect(replay.status).toBe(400)
     expect(await replay.json()).toMatchObject({ error: 'invalid_grant' })
+  })
+
+  it('rejects a PKCE verifier that does not match the authorization challenge', async () => {
+    const client = await registerClient()
+    const code = await authorize(client.client_id)
+    const response = await exchange(code, client.client_id, 'z'.repeat(50))
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ error: 'invalid_grant' })
   })
 
   it('allows only one of two concurrent exchanges to consume an authorization code', async () => {
