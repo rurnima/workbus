@@ -224,7 +224,7 @@ export function createGateway(configure: Configure = () => ({})) {
       return answer(definition, await ledger.call(caller, definition.name, input, mount))
     } catch (error) {
       if (error instanceof WorkbusError) {
-        const headers = error.status === 401 && rest === '/mcp'
+        const headers: Record<string, string> = error.status === 401 && rest === '/mcp'
           ? { 'www-authenticate': `Bearer resource_metadata=\"${origin}/.well-known/oauth-protected-resource/b/${name}\"` }
           : {}
         return failureResponse(error.toFailure(), headers)
