@@ -61,7 +61,7 @@ async function authorize(clientId: string) {
   return callback.searchParams.get('code')!
 }
 
-async function exchange(code: string, clientId: string, codeVerifier = verifier) {
+async function exchange(code: string, clientId: string, codeVerifier = verifier, redirect = redirectUri) {
   return SELF.fetch(origin + '/oauth/token', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -140,12 +140,27 @@ describe('Workbus OAuth', () => {
     expect(await replay.json()).toMatchObject({ error: 'invalid_grant' })
   })
 
-  it('rejects a PKCE verifier that does not match the authorization challenge', async () => {
+  it('rejects invalid PKCE proofs without consuming the valid code', async () => {
     const client = await registerClient()
     const code = await authorize(client.client_id)
-    const response = await exchange(code, client.client_id, 'z'.repeat(50))
-    expect(response.status).toBe(400)
-    expect(await response.json()).toMatchObject({ error: 'invalid_grant' })
+    const invalid = await exchange(code, client.client_id, 'z'.repeat(50))
+    expect(invalid.status).toBe(400)
+    expect(await invalid.json()).toMatchObject({ error: 'invalid_grant' })
+
+    const valid = await exchange(code, client.client_id)
+    expect(valid.status).toBe(200)
+  })
+
+  it('does not let a mismatched client or redirect URI consume another client code', async () => {
+    const client = await registerClient()
+    const code = await authorize(client.client_id)
+    const wrongClient = await exchange(code, 'not-the-registered-client')
+    expect(wrongClient.status).toBe(400)
+    const wrongRedirect = await exchange(code, client.client_id, verifier, 'https://attacker.example/callback')
+    expect(wrongRedirect.status).toBe(400)
+
+    const valid = await exchange(code, client.client_id)
+    expect(valid.status).toBe(200)
   })
 
   it('allows only one of two concurrent exchanges to consume an authorization code', async () => {
