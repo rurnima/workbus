@@ -90,7 +90,9 @@ const same = (a: string, b: string) => {
 const allowedRedirect = (uri: string) => {
   try {
     const url = new URL(uri)
-    return url.protocol === 'https:' || url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+    if (url.username || url.password || url.hash) return false
+    if (url.protocol === 'https:') return true
+    return url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
   } catch { return false }
 }
 const html = (body: string) => new Response(
