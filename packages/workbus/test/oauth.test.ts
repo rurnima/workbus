@@ -81,7 +81,12 @@ describe('Workbus OAuth', () => {
     const authorization = await SELF.fetch(origin + '/.well-known/oauth-authorization-server')
     expect(authorization.status).toBe(200)
     const metadata = await authorization.json() as Record<string, unknown>
-    expect(metadata.issuer).toBe(origin + '/oauth')
+    expect(metadata.issuer).toBe(origin)
+    const pathMetadataResponse = await SELF.fetch(origin + '/.well-known/oauth-authorization-server/oauth')
+    expect(pathMetadataResponse.status).toBe(200)
+    const pathMetadata = await pathMetadataResponse.json() as Record<string, unknown>
+    expect(pathMetadata.issuer).toBe(origin + '/oauth')
+    expect(pathMetadata.authorization_endpoint).toBe(origin + '/oauth/authorize')
     expect(metadata.authorization_endpoint).toBe(origin + '/oauth/authorize')
     expect(metadata.token_endpoint).toBe(origin + '/oauth/token')
     expect(metadata.registration_endpoint).toBe(origin + '/oauth/register')
