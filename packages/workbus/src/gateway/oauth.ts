@@ -13,9 +13,12 @@ const json = (value: unknown, status = 200, headers: HeadersInit = {}) =>
 
 // Hidden form values are HTML attributes, not URL components. Escape them for HTML
 // so the browser submits the original URI/state exactly once via form encoding.
-const escapeHtml = (value: string) => value.replace(/[&<>\"']/g, (char) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;',
-})[char]!)
+const escapeHtml = (value: string) => value
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#39;')
 
 /** Durable, single-purpose storage for OAuth clients and one-time authorization codes. */
 export class OAuthStore extends DurableObject {
