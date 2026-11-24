@@ -107,7 +107,10 @@ export async function handleOAuth(request: Request, env: OAuthEnv): Promise<Resp
   const issuer = origin + '/oauth'
   const resource = url.origin + url.pathname.replace(/\/(?:\.well-known\/.*|oauth\/.*)$/, '')
   if (url.pathname === '/.well-known/oauth-authorization-server' || url.pathname === '/.well-known/oauth-authorization-server/oauth' || url.pathname === '/oauth/.well-known/oauth-authorization-server') {
-    return json({ issuer, authorization_endpoint: origin + '/oauth/authorize', token_endpoint: origin + '/oauth/token',
+    // RFC 8414 requires the metadata issuer to match the issuer identifier used
+    // to construct its well-known URL. The root and /oauth issuers are distinct.
+    const metadataIssuer = url.pathname === '/.well-known/oauth-authorization-server' ? origin : issuer
+    return json({ issuer: metadataIssuer, authorization_endpoint: origin + '/oauth/authorize', token_endpoint: origin + '/oauth/token',
       registration_endpoint: origin + '/oauth/register', response_types_supported: ['code'],
       grant_types_supported: ['authorization_code'], code_challenge_methods_supported: ['S256'],
       token_endpoint_auth_methods_supported: ['none'], client_id_metadata_document_supported: false })
