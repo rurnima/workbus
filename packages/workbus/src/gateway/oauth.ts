@@ -5,6 +5,13 @@ import { mint, type IssuerKey } from './auth.ts'
 type Client = { client_id: string; redirect_uris: string[]; client_name?: string }
 type RecordValue = { value: string; expires: number }
 
+export type OAuthEnv = {
+  OAUTH: { getByName(name: string): { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> } }
+  OAUTH_OWNER_PASSWORD: string
+  BOARD_ISSUER_KEY: string
+  BOARD_ORIGIN?: string
+}
+
 const b64url = (bytes: Uint8Array) => Buffer.from(bytes).toString('base64url')
 const random = (size = 32) => b64url(randomBytes(size))
 const sha256 = (value: string) => createHash('sha256').update(value).digest('base64url')
@@ -21,8 +28,8 @@ const escapeHtml = (value: string) => value
   .replaceAll("'", '&#39;')
 
 /** Durable, single-purpose storage for OAuth clients and one-time authorization codes. */
-export class OAuthStore extends DurableObject {
-  constructor(ctx: DurableObjectState, env: unknown) {
+export class OAuthStore extends DurableObject<OAuthEnv> {
+  constructor(ctx: DurableObjectState, env: OAuthEnv) {
     super(ctx, env)
     ctx.storage.sql.exec(`
       CREATE TABLE IF NOT EXISTS oauth_clients (
@@ -71,13 +78,6 @@ export class OAuthStore extends DurableObject {
     }
     return json({ error: 'unknown_operation' }, 400)
   }
-}
-
-export type OAuthEnv = {
-  OAUTH: { getByName(name: string): { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> } }
-  OAUTH_OWNER_PASSWORD: string
-  BOARD_ISSUER_KEY: string
-  BOARD_ORIGIN?: string
 }
 
 const store = (env: OAuthEnv) => env.OAUTH.getByName('workbus-oauth')
