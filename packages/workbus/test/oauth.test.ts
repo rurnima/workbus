@@ -75,7 +75,6 @@ async function exchange(code: string, clientId: string) {
   })
 }
 
-let currentClientId = ''
 
 describe('Workbus OAuth', () => {
   it('publishes authorization-server and protected-resource metadata', async () => {
@@ -107,7 +106,6 @@ describe('Workbus OAuth', () => {
 
   it('preserves redirect URI query parameters and exchanges a code only once', async () => {
     const client = await registerClient()
-    currentClientId = client.client_id
     expect(client.redirect_uris).toEqual([redirectUri])
 
     const code = await authorize(client.client_id)
@@ -120,16 +118,15 @@ describe('Workbus OAuth', () => {
     expect(token.expires_in).toBe(3600)
     expect(token.scope).toBe('board:read board:write')
 
-    const replay = await exchange(code)
+    const replay = await exchange(code, client.client_id)
     expect(replay.status).toBe(400)
     expect(await replay.json()).toMatchObject({ error: 'invalid_grant' })
   })
 
   it('allows only one of two concurrent exchanges to consume an authorization code', async () => {
     const client = await registerClient()
-    currentClientId = client.client_id
     const code = await authorize(client.client_id)
-    const responses = await Promise.all([exchange(code), exchange(code)])
+    const responses = await Promise.all([exchange(code, client.client_id), exchange(code, client.client_id)])
     expect(responses.map((response) => response.status).sort()).toEqual([200, 400])
   })
 })
