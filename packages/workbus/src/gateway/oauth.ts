@@ -61,13 +61,13 @@ export class OAuthStore extends DurableObject {
       return json({ ok: true })
     }
     if (op === 'consume') {
-      const hash = sha256(String(body.code))
-      // Consume in one SQLite statement: concurrent token requests cannot both read the code.
+      // Match every proof before consuming. A bad verifier or mismatched client cannot burn a valid code.
+      // DELETE ... RETURNING is a single atomic SQLite operation, so only one concurrent exchange wins.
       const row = this.ctx.storage.sql.exec<{ client_id: string; redirect_uri: string; challenge: string; subject: string; audience: string; expires: number }>(
-        'DELETE FROM oauth_codes WHERE code_hash = ? RETURNING client_id, redirect_uri, challenge, subject, audience, expires', hash,
+        'DELETE FROM oauth_codes WHERE code_hash = ? AND client_id = ? AND redirect_uri = ? AND challenge = ? AND expires >= ? RETURNING client_id, redirect_uri, challenge, subject, audience, expires',
+        sha256(String(body.code)), String(body.client_id), String(body.redirect_uri), String(body.challenge), Date.now(),
       ).toArray()[0]
-      if (!row || row.expires < Date.now()) return json(null)
-      return json(row)
+      return json(row ?? null)
     }
     return json({ error: 'unknown_operation' }, 400)
   }
@@ -174,9 +174,11 @@ export async function handleOAuth(request: Request, env: OAuthEnv): Promise<Resp
     const redirect = String(form.get('redirect_uri') ?? '')
     const verifier = String(form.get('code_verifier') ?? '')
     if (!/^[A-Za-z0-9._~-]{43,128}$/.test(verifier)) return json({ error: 'invalid_request' }, 400)
-    const consumed = await callStore(env, { op: 'consume', code })
+    const consumed = await callStore(env, {
+      op: 'consume', code, client_id: clientId, redirect_uri: redirect, challenge: sha256(verifier),
+    })
     const record = await consumed.json() as { client_id: string; redirect_uri: string; challenge: string; subject: string; audience: string; expires: number } | null
-    if (!record || record.client_id !== clientId || record.redirect_uri !== redirect || !same(sha256(verifier), record.challenge)) return json({ error: 'invalid_grant' }, 400)
+    if (!record) return json({ error: 'invalid_grant' }, 400)
     const key = JSON.parse(env.BOARD_ISSUER_KEY) as IssuerKey
     const accessToken = await mint({ origin, key, sub: record.subject, audience: record.audience, ttlSeconds: 3600, claims: { role: 'owner', scope: 'board:read board:write' } })
     return json({ access_token: accessToken, token_type: 'Bearer', expires_in: 3600, scope: 'board:read board:write' })
