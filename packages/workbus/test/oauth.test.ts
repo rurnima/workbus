@@ -54,21 +54,21 @@ async function authorize(clientId: string) {
   const location = approved.headers.get('location')
   expect(location).toBeTruthy()
   const callback = new URL(location!)
-  expect(callback.origin + callback.pathname + callback.searchParams.get('mode') && callback.origin + callback.pathname).toBe('https://client.example/callback')
+  expect(callback.origin + callback.pathname).toBe('https://client.example/callback')
   expect(callback.searchParams.get('tenant')).toBe('a')
   expect(callback.searchParams.get('mode')).toBe('b')
   expect(callback.searchParams.get('state')).toBe(state)
   return callback.searchParams.get('code')!
 }
 
-async function exchange(code: string) {
+async function exchange(code: string, clientId: string) {
   return SELF.fetch(origin + '/oauth/token', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       code,
-      client_id: currentClientId,
+      client_id: clientId,
       redirect_uri: redirectUri,
       code_verifier: verifier,
     }),
@@ -112,7 +112,7 @@ describe('Workbus OAuth', () => {
 
     const code = await authorize(client.client_id)
     expect(code).toBeTruthy()
-    const tokenResponse = await exchange(code)
+    const tokenResponse = await exchange(code, client.client_id)
     expect(tokenResponse.status).toBe(200)
     const token = await tokenResponse.json() as { access_token: string; token_type: string; expires_in: number; scope: string }
     expect(token.access_token).toBeTruthy()
