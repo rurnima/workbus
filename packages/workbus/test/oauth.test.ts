@@ -69,7 +69,7 @@ async function exchange(code: string, clientId: string, codeVerifier = verifier,
       grant_type: 'authorization_code',
       code,
       client_id: clientId,
-      redirect_uri: redirectUri,
+      redirect_uri: redirect,
       code_verifier: codeVerifier,
     }),
   })
