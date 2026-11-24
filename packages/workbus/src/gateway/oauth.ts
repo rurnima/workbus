@@ -62,10 +62,10 @@ export class OAuthStore extends DurableObject {
     }
     if (op === 'consume') {
       const hash = sha256(String(body.code))
+      // Consume in one SQLite statement: concurrent token requests cannot both read the code.
       const row = this.ctx.storage.sql.exec<{ client_id: string; redirect_uri: string; challenge: string; subject: string; audience: string; expires: number }>(
-        'SELECT * FROM oauth_codes WHERE code_hash = ?', hash,
+        'DELETE FROM oauth_codes WHERE code_hash = ? RETURNING client_id, redirect_uri, challenge, subject, audience, expires', hash,
       ).toArray()[0]
-      this.ctx.storage.sql.exec('DELETE FROM oauth_codes WHERE code_hash = ?', hash)
       if (!row || row.expires < Date.now()) return json(null)
       return json(row)
     }
