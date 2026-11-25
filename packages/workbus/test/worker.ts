@@ -4,6 +4,7 @@
 import { defineWorkbus } from '../src/index.ts'
 import './sink.ts'
 import type { GatewayEnv } from '../src/gateway/gateway.ts'
+import { OAuthStore } from '../src/gateway/oauth.ts'
 import type { WatchConfig } from '../src/ledger/ledger.ts'
 import { testProvider } from './sync-provider.ts'
 
@@ -12,6 +13,7 @@ export const lateWatchers: Record<string, WatchConfig> = {}
 
 const provider = testProvider()
 
+export { OAuthStore }
 export const { Ledger, Relay, Mailbox, Inbox, gateway } = defineWorkbus(() => ({
   watch: {
     everything: { tail: '', sink: { kind: 'url', url: 'https://sink.test/everything' } },

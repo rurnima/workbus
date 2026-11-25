@@ -13,7 +13,7 @@ export default defineConfig(async () => {
       cloudflareTest({
         main: './test/worker.ts',
         wrangler: { configPath: './wrangler.jsonc' },
-        miniflare: { bindings: { ARCHIVE: 'off', BOARD_ISSUER_KEY: JSON.stringify(issuerKey) } },
+        miniflare: { bindings: { ARCHIVE: 'off', BOARD_ISSUER_KEY: JSON.stringify(issuerKey), OAUTH_OWNER_PASSWORD: 'workbus-test-only-owner-password-2026' } },
       }),
     ],
     test: { include: ['test/**/*.test.ts'], testTimeout: 30_000 },
